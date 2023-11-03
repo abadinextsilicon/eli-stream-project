@@ -2,7 +2,8 @@ from flask import Flask, request
 import random
 import os
 import logging
-from pylive555 import LiveServerMediaSession, Live555MediaServer
+import ctypes
+from ctypes import c_char_p, c_int
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,6 +22,19 @@ def is_port_in_use(port):
         return False  # Port is available
     except socket.error:
         return True  # Port is in use
+
+# Load the live555 shared library
+live555 = ctypes.CDLL('live555.dll')  # Replace with the path to your live555 library
+
+# Define the live555 functions
+live555.createMediaSession.argtypes = [c_char_p]
+live555.createMediaSession.restype = c_void_p
+live555.createMediaSubsession.argtypes = [c_void_p, c_int, c_int, c_int, c_int]
+live555.createMediaSubsession.restype = c_void_p
+live555.initializeMediaSession.argtypes = [c_void_p]
+live555.initializeMediaSession.restype = None
+live555.startMediaSession.argtypes = [c_void_p, c_int]
+live555.startMediaSession.restype = None
 
 # Define a route for streaming
 @app.route('/stream', methods=['POST'])
@@ -47,19 +61,18 @@ def mystream():
             # Generate a random port for streaming between 10000 and 65535
             port = random.randint(10000, 65535)
             if not is_port_in_use(port):
-                # Create a LiveServerMediaSession
-                media_session = LiveServerMediaSession()
-                media_session.add_file(file_path)
+                # Create a live555 MediaSession
+                media_session = live555.createMediaSession(file_path.encode())
+                if media_session:
+                    # Create a live555 MediaSubsession
+                    media_subsession = live555.createMediaSubsession(media_session, 0, 0, 0, port)
+                    if media_subsession:
+                        # Initialize and start the live555 MediaSession
+                        live555.initializeMediaSession(media_session)
+                        live555.startMediaSession(media_session, port)
+                        # Return the allocated port to the client
+                        return {'port': port}, 200
 
-                # Create a Live555MediaServer
-                media_server = Live555MediaServer()
-                media_server.add_server_media_session(media_session, path=filename)
-
-                # Start the media server on the specified port
-                media_server.start(port)
-
-                # Return the allocated port to the client
-                return {'port': port}, 200
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         return {"error": "An error occurred"}, 500
