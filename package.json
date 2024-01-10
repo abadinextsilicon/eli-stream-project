@@ -1,0 +1,21 @@
+{
+  "name": "video-streaming-eli abadi project",
+  "version": "1.0.0",
+  "description": "A Node.js/Express example of streaming video Eli Abadi",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "mocha"
+  },
+  "keywords": [],
+  "author": "abadieliahu@gmail.com",
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "axios": "^1.6.5",
+    "chai": "^4.3.4",
+    "mocha": "^10.2.0",
+    "nodemon": "^2.0.4"
+  }
+}
